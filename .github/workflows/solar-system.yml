@@ -87,6 +87,8 @@ jobs:
     docker:
       name: Containerization
       needs: [unit-testing, code-coverage]
+      permissions:
+        packages: write
       runs-on: ubuntu-latest
       steps:
       - name: Checkout Repository
@@ -127,12 +129,12 @@ jobs:
           echo Testing Image URL using wget
           wget -q -O - 127.0.0.1:3000/live | grep live
 
-      - name: Lowercase the ghcr repository owner
+      - name: Workaround Lowercase the ghcr repository owner
         run: |
             echo "GHCR_OWNER_LC=${GHCR_OWNER,,}" >> ${GITHUB_ENV}
         env:
           GHCR_OWNER: '${{ github.repository_owner }}'
-          
+
       - name: Container Registry Push
         uses: docker/build-push-action@v4
         with:
