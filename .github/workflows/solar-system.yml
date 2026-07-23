@@ -200,7 +200,7 @@ jobs:
         run: |
           kubectl version
           echo ------------------------------------
-          kubectl get nodes
+          kubectl get namespaces
 
       # AWS Ingress detail check
       - name: Save Nginx Ingress Controller IP as a GITHUB Environment Variable
