@@ -178,33 +178,22 @@ jobs:
         with:
            version: 'v1.26.0'
 
-
-
-      # Authenticate to AWS using GitHub Secrets
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set Kubeconfig file
+        uses: azure/k8s-set-context@v5
         with:
-          role-to-assume: arn:aws:iam::718240086204:role/solar-system-describe-eks-cluster
-          aws-region: us-east-2
-
-      # Dynamically fetch fresh Kubeconfig from EKS
-      - name: Update Kubeconfig for EKS
-        run: |
-          aws eks update-kubeconfig --region us-east-2 --name solar-system-cluster
+           method: kubeconfig
+           kubeconfig: ${{ secrets.KUBECONFIG }}
 
       - name: Fetch Kubernetes Cluster Details
         run: |
           kubectl version --short
           echo ------------------------------------
           kubectl get nodes
-
-      # AWS Ingress detail check
+      
       - name: Save Nginx Ingress Controller IP as a GITHUB Environment Variable
         run: |
-          INGRESS_HOST=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].hostname}")
-          INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-          ENDPOINT="${INGRESS_HOST:-$INGRESS_IP}"
-          echo "INGRESS_IP=$ENDPOINT" >> $GITHUB_ENV
+          echo "INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].ip}")" >> $GITHUB_ENV
+
 
       - name: Replace Token in Manifest files
         uses: cschleiden/replace-tokens@v1
