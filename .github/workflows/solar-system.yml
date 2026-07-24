@@ -210,7 +210,7 @@ jobs:
       #    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/aws/deploy.yaml
       #    sleep 300
 
-      
+
       # AWS Ingress detail check
       - name: Save Nginx Ingress Controller IP as a GITHUB Environment Variable
         run: |
@@ -234,3 +234,17 @@ jobs:
       - name: Check files
         run: |
           cat kubernetes/development/*.yaml
+
+      - name: Create MongoDB Secret
+        run: |
+          kubectl -n ${{ vars.NAMESPACE }} create secret generic mongo-db-creds \
+          --from-literal=MONGO_URI=${{ env.MONGO_URI }} \
+          --from-literal=MONGO_USERNAME=${{ vars.MONGO_USERNAME }} \
+          --from-literal=MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }} \
+          --save-config \
+          --dry-run=client \
+          -o yaml | kubectl apply -f -
+
+      - name: Deploy to Dev Env
+        run: |
+          kubectl apply -f kubernetes/development
