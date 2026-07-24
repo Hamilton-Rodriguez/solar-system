@@ -204,6 +204,13 @@ jobs:
           kubectl get nodes
           kubectl get svc -A
 
+      ## Deploy NGINX Ingress Controller using official raw manifests (No Helm needed)
+      #- name: Deploy NGINX Ingress Controller
+      #  run: |
+      #    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/aws/deploy.yaml
+      #    sleep 300
+
+      
       # AWS Ingress detail check
       - name: Save Nginx Ingress Controller IP as a GITHUB Environment Variable
         run: |
