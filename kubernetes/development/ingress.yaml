@@ -1,24 +1,22 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    kubernetes.io/tls-acme: "true"
   name: solar-system
   namespace: ${NAMESPACE}
+  annotations:
+    # Disables automatic HTTP->HTTPS redirect while testing without SSL certs
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-    rules:
-    - host: solar-system-${NAMESPACE}.${INGRESS_IP}.nip.io
-      http:
+  # Updated annotation to modern K8s spec
+  ingressClassName: nginx
+  rules:
+    # Removing the explicit 'host' rule allows NGINX to catch all incoming traffic on the NLB
+    - http:
         paths:
-        - backend:
-            service:
-              name: solar-system
-              port:
-                number: 3000
-          path: /
-          pathType: Prefix
-    tls:
-    - hosts:
-      - solar-system-${NAMESPACE}.${INGRESS_IP}.nip.io
-      secretName: ingress-local-tls
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: solar-system
+                port:
+                  number: 3000
