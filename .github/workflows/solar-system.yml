@@ -258,7 +258,13 @@ jobs:
       - name: Set App Ingress Host URL
         id: set-ingress-host-address
         run: |
-          echo "APP_INGRESS_HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> "$GITHUB_OUTPUT"
+          # Try to get the host from ingress rules first, then TLS, fallback to AWS NGINX LB endpoint if empty
+          HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.rules[0].host}" 2>/dev/null || true)
+          if [ -z "$HOST" ]; then
+            HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.tls[0].hosts[0]}" 2>/dev/null || true)
+          fi
+          ENDPOINT="${HOST:-$INGRESS_IP}"
+          echo "APP_INGRESS_HOST=$ENDPOINT" >> "$GITHUB_OUTPUT"
 
     integration-test:
         name: Dev Integration Testing
