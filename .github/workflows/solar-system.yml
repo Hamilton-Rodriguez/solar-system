@@ -267,7 +267,7 @@ jobs:
           if [ -z "$HOST" ]; then
             HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.tls[0].hosts[0]}" 2>/dev/null || true)
           fi
-          ENDPOINT="${HOST:-$INGRESS_IP}"
+          ENDPOINT="${HOST:-$INGRESS_IP}/dev"
           echo "APP_INGRESS_HOST=$ENDPOINT" >> "$GITHUB_OUTPUT"
 
     dev-integration-test:
