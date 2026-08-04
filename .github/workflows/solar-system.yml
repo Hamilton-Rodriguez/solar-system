@@ -269,7 +269,7 @@ jobs:
           ENDPOINT="${HOST:-$INGRESS_IP}"
           echo "APP_INGRESS_HOST=$ENDPOINT" >> "$GITHUB_OUTPUT"
 
-    integration-test:
+    dev-integration-test:
         name: Dev Integration Testing
         needs: dev-deploy
         runs-on: ubuntu-latest
@@ -277,6 +277,109 @@ jobs:
           - name: Test URL Output using CURL and JQ
             env:
               URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
+            run: |
+              echo $URL
+              echo "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _"
+              curl https://$URL/live -s -k | jq -r .status | grep -i live
+
+    prod-deploy:
+      needs: dev-integration-test
+      environment:
+        name: production
+        url: https://${{ steps.set-ingress-host-address.outputs.APP_INGRESS_HOST }}
+      outputs:
+        APP_INGRESS_URL: ${{ steps.set-ingress-host-address.outputs.APP_INGRESS_HOST }}
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Install kubectl CLI
+        uses: azure/setup-kubectl@v4
+        with:
+           version: 'v1.30.0'
+
+      # Authenticate to AWS using GitHub Secrets
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::718240086204:role/solar-system-describe-eks-cluster
+          aws-region: us-east-2
+
+      # Dynamically fetch fresh Kubeconfig from EKS
+      - name: Update Kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region us-east-2 --name solar-system-cluster
+
+      - name: Fetch Kubernetes Cluster Details
+        run: |
+          kubectl version
+          echo ------------------------------------
+          kubectl get namespaces
+          kubectl get nodes
+          kubectl get svc -A
+
+      # AWS Ingress detail check
+      - name: Save Nginx Ingress Controller IP as a GITHUB Environment Variable
+        run: |
+          INGRESS_HOST=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].hostname}")
+          INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+          ENDPOINT="${INGRESS_HOST:-$INGRESS_IP}"
+          echo "INGRESS_IP=$ENDPOINT" >> $GITHUB_ENV
+
+      - name: Replace Token in Manifest files
+        uses: cschleiden/replace-tokens@v1
+        with:
+          tokenPrefix: '${'
+          tokenSuffix: '}'
+          files: '["kubernetes/staging/*.yaml"]'
+        env:
+          NAMESPACE: ${{ vars.NAMESPACE }}
+          REPLICAS: ${{ vars.REPLICAS }}
+          IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system:${{ github.sha }}
+          INGRESS_IP: ${{ env.INGRESS_IP }}
+
+      - name: Check files
+        run: |
+          cat kubernetes/staging/*.yaml
+
+      - name: Ensure Namespace Exists
+        run: |
+          kubectl create namespace ${{ vars.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create MongoDB Secret
+        run: |
+          kubectl -n ${{ vars.NAMESPACE }} create secret generic mongo-db-creds \
+          --from-literal=MONGO_URI=${{ env.MONGO_URI }} \
+          --from-literal=MONGO_USERNAME=${{ vars.MONGO_USERNAME }} \
+          --from-literal=MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }} \
+          --save-config \
+          --dry-run=client \
+          -o yaml | kubectl apply -f -
+
+      - name: Deploy to Prod Env
+        run: |
+          kubectl apply -f kubernetes/staging
+      
+      - name: Set App Ingress Host URL
+        id: set-ingress-host-address
+        run: |
+          # Try to get the host from ingress rules first, then TLS, fallback to AWS NGINX LB endpoint if empty
+          HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.rules[0].host}" 2>/dev/null || true)
+          if [ -z "$HOST" ]; then
+            HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.tls[0].hosts[0]}" 2>/dev/null || true)
+          fi
+          ENDPOINT="${HOST:-$INGRESS_IP}"
+          echo "APP_INGRESS_HOST=$ENDPOINT" >> "$GITHUB_OUTPUT"
+
+    prod-integration-test:
+        name: Prod Integration Testing
+        needs: prod-deploy
+        runs-on: ubuntu-latest
+        steps:
+          - name: Test URL Output using CURL and JQ
+            env:
+              URL: ${{ needs.prod-deploy.outputs.APP_INGRESS_URL }}
             run: |
               echo $URL
               echo "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _"
