@@ -282,7 +282,7 @@ jobs:
             run: |
               echo $URL
               echo "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _"
-              curl https://$URL/live -s -k | jq -r .status | grep -i live
+              curl https://$URL/live -i -s -k | jq -r .status | grep -i live
 
     prod-deploy:
       if: github.ref == 'refs/heads/main'
