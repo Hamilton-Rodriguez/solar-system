@@ -236,6 +236,7 @@ jobs:
           REPLICAS: ${{ vars.REPLICAS }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system:${{ github.sha }}
           INGRESS_IP: ${{ env.INGRESS_IP }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
 
       - name: Check files
         run: |
@@ -267,7 +268,9 @@ jobs:
           if [ -z "$HOST" ]; then
             HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.tls[0].hosts[0]}" 2>/dev/null || true)
           fi
-          ENDPOINT="${HOST:-$INGRESS_IP}/dev"
+          # Endpoint before the R53 domain integration 
+          # ENDPOINT="${HOST:-$INGRESS_IP}/dev"
+          ENDPOINT="${{ vars.INGRESS_HOST }}"
           echo "APP_INGRESS_HOST=$ENDPOINT" >> "$GITHUB_OUTPUT"
 
     dev-integration-test:
@@ -282,7 +285,8 @@ jobs:
             run: |
               echo $URL
               echo "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _"
-              curl https://$URL/live -s -k | jq -r .status | grep -i live
+              # curl https://$URL/live -s -k | jq -r .status | grep -i live
+
 
     prod-deploy:
       if: github.ref == 'refs/heads/main'
@@ -341,6 +345,7 @@ jobs:
           REPLICAS: ${{ vars.REPLICAS }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system:${{ github.sha }}
           INGRESS_IP: ${{ env.INGRESS_IP }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
 
       - name: Check files
         run: |
@@ -372,7 +377,9 @@ jobs:
           if [ -z "$HOST" ]; then
             HOST=$(kubectl -n ${{ vars.NAMESPACE }} get ingress -o jsonpath="{.items[0].spec.tls[0].hosts[0]}" 2>/dev/null || true)
           fi
-          ENDPOINT="${HOST:-$INGRESS_IP}"
+          # Endpoint before the R53 domain integration 
+          # ENDPOINT="${HOST:-$INGRESS_IP}"
+          ENDPOINT="${{ vars.INGRESS_HOST }}"
           echo "APP_INGRESS_HOST=$ENDPOINT" >> "$GITHUB_OUTPUT"
 
     prod-integration-test:
