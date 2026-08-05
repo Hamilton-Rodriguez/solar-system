@@ -11,7 +11,8 @@ spec:
   ingressClassName: nginx
   rules:
     # Removing the explicit 'host' rule allows NGINX to catch all incoming traffic on the NLB
-    - http:
+    - host: ${INGRESS_HOST}
+      http:
         paths:
           - path: /
             pathType: Prefix
