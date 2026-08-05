@@ -6,6 +6,8 @@ metadata:
   annotations:
     # Disables automatic HTTP->HTTPS redirect while testing without SSL certs
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   # Updated annotation to modern K8s spec
   ingressClassName: nginx
@@ -13,8 +15,8 @@ spec:
     - host: ${INGRESS_HOST}
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: /dev(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: solar-system
