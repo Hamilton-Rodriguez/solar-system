@@ -283,9 +283,23 @@ jobs:
             env:
               URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
             run: |
-              echo $URL
-              echo "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _"
-              # curl https://$URL/live -s -k | jq -r .status | grep -i live
+              # Wait 15 seconds for Route 53 DNS & NGINX endpoints to settle
+              sleep 15
+              # Print raw output for debugging
+              echo "Raw response from endpoint:"
+              curl -s -k "https://$URL/live" || true
+              echo ""
+              # Retry up to 5 times (10s delay between attempts) to allow DNS/pod warm-up
+              until curl -s -k "https://$URL/live" | jq -r .status | grep -iq "live"; do
+                echo "Waiting for https://$URL/live to return status: live..."
+                sleep 10
+                ((count++))
+                if [ "$count" -ge 5 ]; then
+                  echo "Integration test timed out!"
+                  exit 1
+                fi
+              done
+              echo "SUCCESS: App is live!"
 
 
     prod-deploy:
@@ -392,6 +406,21 @@ jobs:
             env:
               URL: ${{ needs.prod-deploy.outputs.APP_INGRESS_URL }}
             run: |
-              echo $URL
-              echo "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _"
-              curl https://$URL/live -s -k | jq -r .status | grep -i live
+              # Wait 15 seconds for Route 53 DNS & NGINX endpoints to settle
+              sleep 15
+              # Print raw output for debugging
+              echo "Raw response from endpoint:"
+              curl -s -k "https://$URL/live" || true
+              echo ""
+              # Retry up to 5 times (10s delay between attempts) to allow DNS/pod warm-up
+              until curl -s -k "https://$URL/live" | jq -r .status | grep -iq "live"; do
+                echo "Waiting for https://$URL/live to return status: live..."
+                sleep 10
+                ((count++))
+                if [ "$count" -ge 5 ]; then
+                  echo "Integration test timed out!"
+                  exit 1
+                fi
+              done
+              echo "SUCCESS: App is live!"
+
