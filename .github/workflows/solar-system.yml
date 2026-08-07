@@ -172,7 +172,7 @@ jobs:
               ghcr.io/${{ env.GHCR_OWNER_LC }}/solar-system:${{ github.sha }}
 
     dev-deploy:
-      if: contains(github.ref, 'feature/')
+      if: github.event_name == 'pull_request'
       needs: docker
       environment:
         name: development
@@ -276,7 +276,7 @@ jobs:
 
     dev-integration-test:
         name: Dev Integration Testing
-        if: contains(github.ref, 'feature/')
+        if: github.event_name == 'pull_request'
         needs: dev-deploy
         runs-on: ubuntu-latest
         steps:
