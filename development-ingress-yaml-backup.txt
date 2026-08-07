@@ -78,4 +78,5 @@ spec:
                 name: solar-system
                 port:
                   number: 3000
-                  
+
+little change - test solution
