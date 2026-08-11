@@ -175,6 +175,8 @@ jobs:
       if: github.event_name == 'pull_request'
       needs: docker
       uses: ./.github/workflows/reuse-deployment.yml
+      secrets:
+        mongodb-password: ${{ secrets.MONGO_PASSWORD }}
      
 
     dev-integration-test:
@@ -210,6 +212,8 @@ jobs:
       if: github.ref == 'refs/heads/main'
       needs: docker
       uses: ./.github/workflows/reuse-deployment.yml
+      secrets:
+        mongodb-password: ${{ secrets.MONGO_PASSWORD }}
 
     prod-integration-test:
         name: Prod Integration Testing
