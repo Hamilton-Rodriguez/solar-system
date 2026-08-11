@@ -191,7 +191,7 @@ jobs:
         steps:
           - name: Test URL Output using CURL and JQ
             env:
-              URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
+              URL: ${{ needs.dev-deploy.outputs.application-url }}
             run: |
               # Wait 15 seconds for Route 53 DNS & NGINX endpoints to settle
               sleep 15
@@ -231,7 +231,7 @@ jobs:
         steps:
           - name: Test URL Output using CURL and JQ
             env:
-              URL: ${{ needs.prod-deploy.outputs.APP_INGRESS_URL }}
+              URL: ${{ needs.prod-deploy.outputs.application-url }}
             run: |
               # Wait 15 seconds for Route 53 DNS & NGINX endpoints to settle
               sleep 15
