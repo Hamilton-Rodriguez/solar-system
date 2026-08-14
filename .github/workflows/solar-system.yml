@@ -143,15 +143,8 @@ jobs:
             aws-region: us-east-2
 
         - name: Upload to AWS S3
-          uses: jakejarvis/s3-sync-action@master
-          with:
-            args: --follow-symlinks --delete
-          env:
-            AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
-            AWS_REGION: 'us-east-2'
-            SOURCE_DIR: 'reports-${{ github.sha }}'
-            DEST_DIR: 'reports-${{ github.sha }}'
-
+          run: |
+            aws s3 sync reports-${{ github.sha }} s3://${{ vars.AWS_S3_BUCKET }}/reports-${{ github.sha }} --follow-symlinks --delete
 
     docker:
       name: Containerization
