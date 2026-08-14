@@ -111,6 +111,48 @@ jobs:
             path: coverage
             retention-days: 5
 
+    reports-s3:
+      needs: [unit-testing, code-coverage]
+      name: AWS S3 - Upload Reports
+      runs-on: ubuntu-latest
+      continue-on-error: true
+      steps:
+        - name: Download Mocha Test Artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: Mocha-Test-Results
+
+        - name: Download Code Coverage Artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: Code-Coverage-Result
+
+        - name: Merge Test Files
+          run: |
+            ls -ltr
+            mkdir reports-${{ github.sha }}
+            mv cobertura.coverage.xml reports-${{ github.sha }}/
+            mv test-results.xml reports-${{ github.sha }}/
+            ls -ltr reports-${{ github.sha }}/
+
+        # Authenticate with AWS via OIDC
+        - name: Configure AWS Credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: arn:aws:iam::718240086204:role/coolkloud-github-actions-role
+            aws-region: us-east-2
+
+        - name: Upload to AWS S3
+          uses: jakejarvis/s3-sync-action@master
+          with:
+            args: --follow-symlinks --delete
+          env:
+            AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
+            AWS_REGION: 'us-east-2'
+            SOURCE_DIR: 'reports-${{ github.sha }}'
+            DEST_DIR: 'reports-${{ github.sha }}'
+
+
     docker:
       name: Containerization
       needs: [unit-testing, code-coverage]
